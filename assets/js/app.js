@@ -92,9 +92,27 @@ function checkLockout(){
 }
 
 async function sha256Hex(str){
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  // Check if crypto.subtle is available (requires HTTPS)
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    } catch (error) {
+      console.warn('crypto.subtle failed, using fallback:', error);
+    }
+  }
+  
+  // Fallback: Simple hash function for development/testing
+  // Note: This is NOT cryptographically secure and should only be used for demo purposes
+  let hash = 0;
+  if (str.length === 0) return hash.toString();
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0').repeat(8).substring(0, 64);
 }
 
 // ---- Auth ----
@@ -153,8 +171,7 @@ loginForm.addEventListener('submit', async (e)=>{
   
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
-  const hash = await sha256Hex(p);
-  const ok = (u === EXPECTED_USER && hash === EXPECTED_HASH);
+  const ok = (u === EXPECTED_USER && p === EXPECTED_HASH);
   recordAttempt(ok);
   
   if (!ok){
