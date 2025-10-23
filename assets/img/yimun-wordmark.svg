@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="40" viewBox="0 0 280 40" role="img" aria-label="YIMUN | Youth Impacts">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#5677ff" />
+      <stop offset="100%" stop-color="#293b8a" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="280" height="40" fill="none"/>
+  <text x="0" y="27" font-family="Inter,ui-sans-serif,system-ui" font-size="24" font-weight="700" fill="url(#g)">YIMUN</text>
+  <text x="115" y="27" font-family="Inter,ui-sans-serif,system-ui" font-size="16" font-weight="600" fill="#334155">| Youth Impacts</text>
+</svg>
