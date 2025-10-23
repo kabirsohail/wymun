@@ -129,16 +129,43 @@ loginForm.addEventListener('submit', async (e)=>{
     lockoutMsg.textContent = `Locked. Try again in ${Math.ceil(lockMs/60000)} min.`;
     return;
   }
+  
+  const submitBtn = document.querySelector('#loginForm button');
+  if (!submitBtn) {
+    console.error('Submit button not found');
+    return;
+  }
+  
+  const originalText = submitBtn.textContent;
+  
+  // Show loading animation
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = `
+    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    Signing in...
+  `;
+  
+  // Simulate loading for 1 second
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
   const u = document.getElementById('username').value.trim();
   const p = document.getElementById('password').value;
   const hash = await sha256Hex(p);
   const ok = (u === EXPECTED_USER && hash === EXPECTED_HASH);
   recordAttempt(ok);
+  
   if (!ok){
     const left = Math.max(0, CONFIG.lockoutAfterAttempts - (getLock().attempts||0));
     lockoutMsg.textContent = left>0 ? `Invalid. ${left} attempt(s) left.` : `Locked for ${CONFIG.lockoutMinutes} min.`;
+    // Reset button
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
     return;
   }
+  
   setJSON('session', { user: u, loginAt: now() });
   lockoutMsg.textContent = '';
   go('#/app');
@@ -165,49 +192,49 @@ function startIdleTimer(){
 // ---- Data & State ----
 const DEFAULT_DATA = [
   {
-    "name": "Ayesha Khan",
-    "program": "YIMUN • Washington",
+    "name": "Anika Najam",
+    "program": "YIMUN • NYC",
     "batch": "2025-Nov",
     "country": "Pakistan",
     "status": "Accepted",
-    "invite": "Ayesha_Khan_Invite_Washington2025.pdf",
-    "passport": "Ayesha_Khan_Passport.pdf",
+    "invite": "ANIKA NAJAM YIMUN NYC Invite.pdf",
+    "passport": "AnikaNajamPassport.pdf",
     "payment": "Paid",
     "visa": "Submitted",
     "notes": "PIFIS Delegation"
   },
   {
-    "name": "Diego Alvarez",
-    "program": "YIMUN • Washington",
+    "name": "Moazzam Dildar",
+    "program": "YIMUN • NYC",
     "batch": "2025-Nov",
     "country": "Pakistan",
     "status": "Accepted",
-    "invite": null,
-    "passport": "Diego_Alvarez_Passport.pdf",
-    "payment": "Partial",
-    "visa": "Pending",
+    "invite": "MOAZZAM DILDAR YIMUN NYC Invite.pdf",
+    "passport": "MoazzamDildarPassport.pdf",
+    "payment": "Paid",
+    "visa": "Submitted",
     "notes": "PIFIS Delegation"
   },
   {
-    "name": "Jia Li",
-    "program": "YIMUN • Washington",
+    "name": "Muhammad Tayyab",
+    "program": "YIMUN • NYC",
     "batch": "2025-Nov",
     "country": "Pakistan",
     "status": "Accepted",
-    "invite": "Jia_Li_Invite_Washington2025.pdf",
-    "passport": "Jia_Li_Passport.pdf",
+    "invite": "MUHAMMAD TAYYAB YIMUN NYC Invite.pdf",
+    "passport": "MuhammadTayyabPassport.jpeg",
     "payment": "Paid",
     "visa": "Approved",
     "notes": "PIFIS Delegation"
   },
   {
-    "name": "Ethan Brown",
-    "program": "YIMUN • Washington",
+    "name": "Sharoon Gill",
+    "program": "YIMUN • NYC",
     "batch": "2025-Nov",
     "country": "Pakistan",
     "status": "Accepted",
-    "invite": "Ethan_Brown_Invite_Washington2025.pdf",
-    "passport": "Ethan_Brown_Passport.pdf",
+    "invite": "SHAROON GILL YIMUN NYC Invite.pdf",
+    "passport": "SharoonGillPassport.jpeg",
     "payment": "Paid",
     "visa": "Submitted",
     "notes": "PIFIS Delegation"
@@ -281,22 +308,19 @@ function formatSize(bytes){
 
 // ---- Document Data ----
 const STUDENT_DOCUMENTS = {
-  'Ayesha Khan': [
-    { name: 'Passport', file: 'passport.pdf', type: 'identity' },
+  'Anika Najam': [
+    { name: 'Passport', file: 'AnikaNajamPassport.pdf', type: 'identity' }
+  ],
+  'Moazzam Dildar': [
+    { name: 'Passport', file: 'MoazzamDildarPassport.pdf', type: 'identity' }
+  ],
+  'Muhammad Tayyab': [
+    { name: 'Passport', file: 'MuhammadTayyabPassport.jpeg', type: 'identity' },
     { name: 'Academic Transcript', file: 'transcript.pdf', type: 'academic' },
     { name: 'Medical Certificate', file: 'medical_certificate.pdf', type: 'health' }
   ],
-  'Diego Alvarez': [
-    { name: 'Passport', file: 'passport.pdf', type: 'identity' }
-  ],
-  'Jia Li': [
-    { name: 'Passport', file: 'passport.pdf', type: 'identity' },
-    { name: 'Academic Transcript', file: 'transcript.pdf', type: 'academic' }
-  ],
-  'Ethan Brown': [
-    { name: 'Passport', file: 'passport.pdf', type: 'identity' },
-    { name: 'Academic Transcript', file: 'transcript.pdf', type: 'academic' },
-    { name: 'Medical Certificate', file: 'medical_certificate.pdf', type: 'health' }
+  'Sharoon Gill': [
+    { name: 'Passport', file: 'SharoonGillPassport.jpeg', type: 'identity' }
   ]
 };
 
@@ -483,12 +507,15 @@ exportCsvBtn.addEventListener('click', () => {
   const arr = sortData(filtered());
   const header = ['Name','Program','Batch','Country','Status','Passport','InviteLetter','Payment','Visa','Notes'];
   const rows = arr.map(d => [d.name,d.program,d.batch,d.country,d.status,(d.passport||''),(d.invite||''),d.payment,d.visa,(d.notes||'')]);
-  const csv = [header].concat(rows).map(r => r.map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\\n');
-  const blob = new Blob([csv], {type:'text/csv'});
+  const csv = [header].concat(rows).map(r => r.map(v => `"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'students.csv';
-  document.body.appendChild(a); a.click(); a.remove();
+  a.download = `students_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a); 
+  a.click(); 
+  a.remove();
+  URL.revokeObjectURL(a.href);
 });
 
 // ---- CSV Import ----
@@ -525,45 +552,111 @@ resetDataBtn.addEventListener('click', () => {
 zipBtn.addEventListener('click', async () => {
   const names = new Set(SELECTED);
   if (names.size===0){ alert('Select at least one row.'); return; }
+  
   const mapByName = new Map(DATA.map(d => [d.name, d]));
   const chosen = Array.from(names).map(n => mapByName.get(n)).filter(Boolean).filter(d => !!d.invite);
   if (chosen.length===0){ alert('No selected rows have invite letters.'); return; }
 
+  // Show loading state
+  const originalText = zipBtn.textContent;
+  zipBtn.disabled = true;
+  zipBtn.innerHTML = `
+    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    Creating ZIP...
+  `;
+
   const zip = new JSZip();
   let added = 0, skipped = 0;
-  await Promise.all(chosen.map(async d => {
-    const url = getLetterURL(d.invite);
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(res.statusText);
-      const blob = await res.blob();
-      zip.file(d.invite, blob);
-      added++;
-    } catch (e) {
-      skipped++;
-      console.warn('Skip', url, e);
+  
+  try {
+    await Promise.all(chosen.map(async d => {
+      const url = getLetterURL(d.invite);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(res.statusText);
+        const blob = await res.blob();
+        zip.file(d.invite, blob);
+        added++;
+      } catch (e) {
+        skipped++;
+        console.warn('Skip', url, e);
+      }
+    }));
+    
+    if (added === 0) { 
+      alert('No downloadable letters found (files missing).'); 
+      return; 
     }
-  }));
-  if (added === 0) { alert('No downloadable letters found (files missing).'); return; }
-  const content = await zip.generateAsync({ type: 'blob' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(content);
-  a.download = 'InvitationLetters.zip';
-  document.body.appendChild(a); a.click(); a.remove();
-  if (skipped>0) alert(`${skipped} file(s) were missing and not included.`);
+    
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = `invite_letters_${new Date().toISOString().split('T')[0]}.zip`;
+    document.body.appendChild(a); 
+    a.click(); 
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    
+    if (skipped>0) alert(`${skipped} file(s) were missing and not included.`);
+  } catch (error) {
+    alert('Error creating ZIP file: ' + error.message);
+  } finally {
+    // Reset button
+    zipBtn.disabled = false;
+    zipBtn.textContent = originalText;
+  }
 });
 
 // ---- Verify letters (presence + size) with concurrency limit ----
 verifyBtn.addEventListener('click', async () => {
   verifyPanel.classList.remove('hidden');
   verifyPanel.textContent = 'Verifying letters…';
-  const tasks = DATA.filter(d=>d.invite).map(d => d.invite);
-  const results = await verifyLetters(tasks, 6);
-  const ok = results.filter(r=>r.ok).length;
-  const missing = results.length - ok;
-  const list = results.map(r => `${r.ok?'✅':'❌'} ${r.file} ${r.size?('('+formatSize(r.size)+')'):''}`).join('\\n');
-  verifyPanel.innerHTML = `<div class=\"text-slate-700 dark:text-slate-300\">\n    <div><strong>${ok}</strong> present, <strong>${missing}</strong> missing.</div>\n    <pre class=\"mt-2 overflow-x-auto\">${list}</pre>\n  </div>`;
-  render(); // update row highlights & size labels
+  
+  // Show loading state on button
+  const originalText = verifyBtn.textContent;
+  verifyBtn.disabled = true;
+  verifyBtn.innerHTML = `
+    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    Verifying...
+  `;
+  
+  try {
+    const tasks = DATA.filter(d=>d.invite).map(d => d.invite);
+    const results = await verifyLetters(tasks, 6);
+    const ok = results.filter(r=>r.ok).length;
+    const missing = results.length - ok;
+    const list = results.map(r => `${r.ok?'✅':'❌'} ${r.file} ${r.size?('('+formatSize(r.size)+')'):''}`).join('\n');
+    verifyPanel.innerHTML = `<div class="text-slate-700 dark:text-slate-300">
+      <div><strong>${ok}</strong> present, <strong>${missing}</strong> missing.</div>
+      <pre class="mt-2 overflow-x-auto">${list}</pre>
+    </div>`;
+    render(); // update row highlights & size labels
+    
+    // Show success state
+    verifyBtn.innerHTML = `
+      <svg class="w-4 h-4 mr-2 text-green-500 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      Letters Verified
+    `;
+    
+    // Reset button after 3 seconds
+    setTimeout(() => {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = originalText;
+    }, 3000);
+    
+  } catch (error) {
+    verifyPanel.innerHTML = `<div class="text-red-600">Error verifying letters: ${error.message}</div>`;
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = originalText;
+  }
 });
 
 async function headOrGet(url){
